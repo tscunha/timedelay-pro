@@ -1,0 +1,12 @@
+node_modules
+dist
+npm-debug.log
+.env
+buffer_storage
+database.sqlite
+database.sqlite-shm
+database.sqlite-wal
+client/node_modules
+client/dist
+.git
+deploy.zip

@@ -1,0 +1,1 @@
+server/db/database.ts(2,32): error TS2307: Cannot find module 'sqlite' or its corresponding type declarations.
