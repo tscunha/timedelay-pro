@@ -24,8 +24,26 @@ async function bootstrap() {
   // Ingest is handled by Nimble Streamer. We only need to resume the Timeshift output daemons.
   const shifts = db.prepare("SELECT * FROM shifts WHERE status = 'running'").all() as any[];
   for (const s of shifts) {
-      server.log.info(`Auto-resuming shift ${s.id}...`);
+      server.log.info(`Auto-resuming TimeShift ${s.id} (Trator Mode)`);
       FFmpegService.startTimeShift(s.id, s.channel_id, s.delay_seconds, s.out_port);
+  }
+
+  const remis = db.prepare("SELECT * FROM remi WHERE status = 'running'").all() as any[];
+  for (const r of remis) {
+      server.log.info(`Auto-resuming REMI ${r.id} (Trator Mode)`);
+      FFmpegService.startRemi(r.id, r.channel_id, r.out_port);
+  }
+
+  const simulcasts = db.prepare("SELECT * FROM simulcasts WHERE status = 'running'").all() as any[];
+  for (const sm of simulcasts) {
+      server.log.info(`Auto-resuming Simulcast ${sm.id} (Trator Mode)`);
+      FFmpegService.startSimulcast(sm.id, sm.channel_id, sm.rtmp_url);
+  }
+
+  const compliances = db.prepare("SELECT * FROM compliance WHERE status = 'running'").all() as any[];
+  for (const c of compliances) {
+      server.log.info(`Auto-resuming Compliance Dumper ${c.id} (Trator Mode)`);
+      FFmpegService.startCompliance(c.id, c.channel_id, c.output_path);
   }
 
   await setupRoutes(server);

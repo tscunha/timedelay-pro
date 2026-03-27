@@ -35,6 +35,40 @@ export function initDb(): Database.Database {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (channel_id) REFERENCES channels (id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS remi (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      out_port INTEGER NOT NULL,
+      status TEXT DEFAULT 'stopped',
+      pid INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (channel_id) REFERENCES channels (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS simulcasts (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      destination_name TEXT NOT NULL,
+      rtmp_url TEXT NOT NULL,
+      status TEXT DEFAULT 'stopped',
+      pid INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (channel_id) REFERENCES channels (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS compliance (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      output_path TEXT NOT NULL,
+      status TEXT DEFAULT 'stopped',
+      pid INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (channel_id) REFERENCES channels (id) ON DELETE CASCADE
+    );
   `);
 
   console.log('📦 Database initialized with better-sqlite3 (Multitenant Schema)');
