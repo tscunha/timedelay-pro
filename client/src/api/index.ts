@@ -6,10 +6,24 @@
 
 const BASE = '/api/v1';
 
+// API key is stored in localStorage so it persists across page reloads.
+// The user sets it once via the settings modal.
+export function getApiKey(): string {
+  return localStorage.getItem('timeshift_api_key') ?? '';
+}
+
+export function setApiKey(key: string) {
+  localStorage.setItem('timeshift_api_key', key);
+}
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const apiKey = getApiKey();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['X-API-Key'] = apiKey;
+
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json();

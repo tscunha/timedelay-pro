@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { getDb } from '../db/database';
 import { FFmpegService } from '../services/ffmpeg.service';
+import { authHook } from './auth';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
@@ -35,9 +36,7 @@ const IdParamSchema = z.object({ id: z.string().uuid() });
 
 export async function setupRoutes(server: FastifyInstance) {
   
-  server.addHook('preValidation', async (request, reply) => {
-    (request as any).tenant_id = 'tenant123';
-  });
+  server.addHook('preValidation', authHook);
 
   server.get('/api/v1/channels', async (request, reply) => {
     const db = getDb();

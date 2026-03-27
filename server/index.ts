@@ -48,13 +48,21 @@ async function bootstrap() {
 
   await setupRoutes(server);
   
-  // Servir frontend React em Produção (Sprint 3)
-  /*
+  // Servir frontend React em Produção
   await server.register(fastifyStatic, {
-    root: path.join(__dirname, '../client/dist'),
+    root: path.join(__dirname, '../../client/dist'),
     prefix: '/',
+    // Fallback para SPA: qualquer rota não-API devolve index.html
+    decorateReply: false,
   });
-  */
+
+  // Fallback SPA: retorna index.html para qualquer rota não-API
+  server.setNotFoundHandler(async (request, reply) => {
+    if (!request.url.startsWith('/api/')) {
+      return reply.sendFile('index.html', path.join(__dirname, '../../client/dist'));
+    }
+    return reply.code(404).send({ success: false, error: 'Route not found' });
+  });
 
   server.get('/api/v1/health', async () => {
     return { status: 'healthy', timestamp: new Date().toISOString() };

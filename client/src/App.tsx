@@ -3,7 +3,7 @@ import TimeShiftTab from './components/TimeShiftTab';
 import RemiTab from './components/RemiTab';
 import SimulcastTab from './components/SimulcastTab';
 import ComplianceTab from './components/ComplianceTab';
-import { channelsApi, type Channel } from './api';
+import { channelsApi, type Channel, getApiKey, setApiKey } from './api';
 
 import './index.css';
 
@@ -12,12 +12,16 @@ function App() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [channelError, setChannelError] = useState<string | null>(null);
 
-  // Modal state
+  // Modal state — New Channel
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newStreamId, setNewStreamId] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Modal state — API Key settings
+  const [showApiModal, setShowApiModal] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState(getApiKey());
 
   const loadChannels = useCallback(async () => {
     try {
@@ -72,11 +76,51 @@ function App() {
           <button className="wf-btn" style={{ width: 'auto', padding: '8px 16px' }} onClick={() => setShowModal(true)}>
             [ + NOVO CANAL ]
           </button>
+          <button
+            className="wf-btn"
+            style={{ width: 'auto', padding: '8px 12px', fontSize: '12px', opacity: 0.8 }}
+            onClick={() => { setApiKeyInput(getApiKey()); setShowApiModal(true); }}
+            title="Configurar API Key de acesso"
+          >
+            [ ⚙ API KEY ]
+          </button>
           <div className="wf-box-dashed" style={{ padding: '10px' }}>
             [LOGOTIPO]
           </div>
         </div>
       </header>
+
+      {/* API Key Settings Modal */}
+      {showApiModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+          <div className="wf-box" style={{ width: '400px', maxWidth: '90vw' }}>
+            <h2 className="wf-title">⚙ CONFIGURAR API KEY</h2>
+            <p style={{ fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
+              Digite a chave de acesso fornecida pelo administrador.<br />
+              Ela será salva no seu navegador e enviada automaticamente em todas as requisições.
+            </p>
+            <label className="wf-label">X-API-KEY</label>
+            <input
+              className="wf-input"
+              type="password"
+              value={apiKeyInput}
+              onChange={e => setApiKeyInput(e.target.value)}
+              placeholder="Ex: minha-chave-secreta-123"
+            />
+            {!getApiKey() && (
+              <p style={{ color: '#c00', fontSize: '12px', marginTop: '8px' }}>⚠ Nenhuma chave configurada. A API pode retornar 401.</p>
+            )}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button className="wf-btn wf-btn-dark" onClick={() => { setApiKey(apiKeyInput.trim()); setShowApiModal(false); loadChannels(); }}>
+                [ SALVAR E RECONECTAR ]
+              </button>
+              <button className="wf-btn" onClick={() => setShowApiModal(false)}>
+                [ CANCELAR ]
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Channel Modal */}
       {showModal && (
