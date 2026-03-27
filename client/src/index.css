@@ -1,76 +1,176 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;700;800&display=swap');
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 body {
-  background-color: #050505;
-  color: #e5e5e5;
-  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-family: "Courier New", Courier, monospace;
+  background-color: #e5e5e5;
+  color: #000;
   margin: 0;
-  padding: 0;
-  background-image: radial-gradient(circle at 50% 0%, #1a1a24 0%, #050505 50%);
-  background-attachment: fixed;
+  padding: 20px;
 }
 
-.font-mono-tech {
-  font-family: 'JetBrains Mono', monospace;
+.wf-container {
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.glass-panel {
-  background: rgba(15, 15, 20, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+.wf-header {
+  border-bottom: 3px solid #000;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.glass-panel-danger {
-  background: rgba(40, 0, 0, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 0, 0, 0.5);
-  box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+.wf-nav {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
 }
 
-.btn-engage {
-  background: linear-gradient(135deg, #FF3300 0%, #CC0000 100%);
-  color: white;
-  text-transform: uppercase;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  border: 2px solid #FF5500;
-  box-shadow: 0 0 15px rgba(255, 51, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.2);
-  transition: all 0.2s ease-in-out;
+.wf-nav-item {
+  padding: 10px 20px;
+  border: 2px solid #000;
+  background: #fff;
+  cursor: pointer;
+  font-weight: bold;
+  font-family: inherit;
 }
 
-.btn-engage:hover {
-  background: linear-gradient(135deg, #FF5500 0%, #EE0000 100%);
-  box-shadow: 0 0 25px rgba(255, 51, 0, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.4);
-  transform: scale(1.02);
+.wf-nav-item.active {
+  background: #000;
+  color: #fff;
 }
 
-.btn-engage:active {
-  transform: scale(0.98);
+.wf-grid-3-1 {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: 20px;
 }
 
-.textShadow {
-  text-shadow: 0px 2px 4px rgba(0,0,0,0.8);
+.wf-grid-3cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
 
-@keyframes strobeRed {
-  0% { opacity: 1; background-color: #aa0000; box-shadow: 0 0 40px #ff0000; }
-  50% { opacity: 0.5; background-color: #330000; box-shadow: none; }
-  100% { opacity: 1; background-color: #aa0000; box-shadow: 0 0 40px #ff0000; }
+.wf-box {
+  border: 2px solid #000;
+  background: #fff;
+  padding: 20px;
 }
 
-.animate-strobe-red {
-  animation: strobeRed 0.9s infinite;
+.wf-box-dashed {
+  border: 2px dashed #000;
+  background: #f9f9f9;
+  padding: 20px;
 }
 
-.status-silent-green {
-  background-color: #001a00;
-  border: 1px solid #004400;
-  color: #00ff00;
+.wf-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.wf-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.wf-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #000;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.wf-input.huge {
+  font-size: 2rem;
+  text-align: center;
+  padding: 20px;
+}
+
+.wf-btn {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #000;
+  background: #e0e0e0;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  font-family: inherit;
+  font-size: 1.1rem;
+}
+
+.wf-btn:hover {
+  background: #ccc;
+}
+
+.wf-btn-dark {
+  background: #000;
+  color: #fff;
+}
+
+.wf-btn-dark:hover {
+  background: #333;
+}
+
+.wf-flex-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.wf-flex-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wf-list-item {
+  border: 1px solid #000;
+  padding: 15px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fdfdfd;
+}
+
+.wf-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.wf-table th, .wf-table td {
+  border: 1px solid #000;
+  padding: 10px;
+  text-align: left;
+}
+
+.wf-table th {
+  background: #e0e0e0;
+}
+
+.wf-badge {
+  border: 1px solid #000;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  background: #eee;
+}
+
+.wf-link-box {
+  border: 1px solid #000;
+  padding: 10px;
+  background: #eaeaea;
+  font-weight: bold;
+  text-align: center;
 }
