@@ -23,6 +23,10 @@ function App() {
   const [showApiModal, setShowApiModal] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(getApiKey());
 
+  // Modal state — Channel manager (list + delete)
+  const [showChannelsModal, setShowChannelsModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const loadChannels = useCallback(async () => {
     try {
       const res = await channelsApi.list();
@@ -60,6 +64,19 @@ function App() {
     }
   };
 
+  const handleDeleteChannel = async (id: string) => {
+    if (!window.confirm('Remover este canal encerrará todos os daemons associados. Confirmar?')) return;
+    setDeletingId(id);
+    try {
+      await channelsApi.destroy(id);
+      await loadChannels();
+    } catch (e: any) {
+      alert(`Erro ao remover canal: ${e.message}`);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="wf-container">
 
@@ -76,6 +93,9 @@ function App() {
           <button className="wf-btn" style={{ width: 'auto', padding: '8px 16px' }} onClick={() => setShowModal(true)}>
             [ + NOVO CANAL ]
           </button>
+          <button className="wf-btn" style={{ width: 'auto', padding: '8px 12px', fontSize: '12px' }} onClick={() => setShowChannelsModal(true)}>
+            [ ☰ CANAIS ]
+          </button>
           <button
             className="wf-btn"
             style={{ width: 'auto', padding: '8px 12px', fontSize: '12px', opacity: 0.8 }}
@@ -89,6 +109,39 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Channel Manager Modal */}
+      {showChannelsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1002 }}>
+          <div className="wf-box" style={{ width: '520px', maxWidth: '95vw', maxHeight: '80vh', overflowY: 'auto' }}>
+            <h2 className="wf-title">☰ GERENCIAR CANAIS</h2>
+            {channels.length === 0 && (
+              <div className="wf-box-dashed" style={{ textAlign: 'center', padding: '30px' }}>
+                <p>[ Nenhum canal cadastrado ]</p>
+              </div>
+            )}
+            {channels.map(c => (
+              <div key={c.id} className="wf-list-item" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <strong>{c.name}</strong><br />
+                  <span style={{ fontSize: '12px', fontFamily: 'monospace' }}>streamid: {c.streamid}</span>
+                </div>
+                <button
+                  className="wf-btn"
+                  style={{ width: 'auto', padding: '6px 12px', fontSize: '12px', color: '#c00', borderColor: '#c00' }}
+                  disabled={deletingId === c.id}
+                  onClick={() => handleDeleteChannel(c.id)}
+                >
+                  {deletingId === c.id ? '[ ... ]' : '[ ✕ REMOVER ]'}
+                </button>
+              </div>
+            ))}
+            <button className="wf-btn" style={{ marginTop: '20px' }} onClick={() => setShowChannelsModal(false)}>
+              [ FECHAR ]
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* API Key Settings Modal */}
       {showApiModal && (

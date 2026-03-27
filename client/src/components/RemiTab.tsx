@@ -9,15 +9,18 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function RemiTab({ channels }: { channels: Channel[] }) {
   const [routes, setRoutes] = useState<Remi[]>([]);
+  const [serverHost, setServerHost] = useState('...');
   const [selectedChannel, setSelectedChannel] = useState('');
   const [outPort, setOutPort] = useState(9050);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const loadRoutes = useCallback(async () => {
     try {
       const res = await remiApi.list();
       setRoutes(res.remi);
+      setServerHost(res.server_host);
     } catch { /* silently ignore poll errors */ }
   }, []);
 
@@ -49,6 +52,12 @@ export default function RemiTab({ channels }: { channels: Channel[] }) {
     } catch (e: any) {
       setError(e.message);
     }
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(text);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   const channelName = (id: string) => channels.find(c => c.id === id)?.name ?? id;
@@ -107,7 +116,15 @@ export default function RemiTab({ channels }: { channels: Channel[] }) {
               <div style={{ flex: 2, textAlign: 'right', display: 'flex', justifyContent: 'space-between', paddingLeft: '20px' }}>
                 <div>
                   <span style={{ fontSize: '12px', fontWeight: 'bold' }}>DESTINO:</span><br />
-                  <strong>srt://[servidor]:{r.out_port}</strong>
+                  <strong style={{ fontFamily: 'monospace' }}>srt://{serverHost}:{r.out_port}</strong>
+                  <br />
+                  <button
+                    className="wf-btn"
+                    style={{ marginTop: '6px', width: 'auto', padding: '3px 8px', fontSize: '11px' }}
+                    onClick={() => handleCopy(`srt://${serverHost}:${r.out_port}`)}
+                  >
+                    {copied === `srt://${serverHost}:${r.out_port}` ? '[ ✓ COPIADO ]' : '[ COPIAR ]'}
+                  </button>
                 </div>
                 <button className="wf-btn" style={{ width: 'auto', height: '100%' }} onClick={() => handleKill(r.id)}>
                   [ X ]

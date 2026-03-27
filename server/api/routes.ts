@@ -34,6 +34,11 @@ const SpawnComplianceSchema = z.object({
 
 const IdParamSchema = z.object({ id: z.string().uuid() });
 
+// Helper: reads SERVER_HOST from env (configurable per deployment)
+function serverHost(): string {
+  return process.env.SERVER_HOST || 'localhost';
+}
+
 export async function setupRoutes(server: FastifyInstance) {
   
   server.addHook('preValidation', authHook);
@@ -53,10 +58,43 @@ export async function setupRoutes(server: FastifyInstance) {
     } catch (e: any) { return reply.code(400).send({ success: false, error: e.issues || e.message }); }
   });
 
+  // DELETE /api/v1/channels/:id
+  // Kills all associated FFmpeg daemons FIRST, then cascades the DB delete.
+  // Without this, daemons become zombies holding ports after the channel is removed.
+  server.delete('/api/v1/channels/:id', async (request, reply) => {
+    try {
+      const { id } = IdParamSchema.parse(request.params);
+      const db = getDb();
+      const tenantId = (request as any).tenant_id;
+
+      // Verify ownership
+      const channel = db.prepare('SELECT id FROM channels WHERE id = ? AND tenant_id = ?').get(id, tenantId);
+      if (!channel) return reply.code(404).send({ success: false, error: 'Canal não encontrado.' });
+
+      // Kill all daemons linked to this channel before DB cascade
+      const shifts = db.prepare('SELECT id FROM shifts WHERE channel_id = ?').all(id) as any[];
+      const remis  = db.prepare('SELECT id FROM remi WHERE channel_id = ?').all(id) as any[];
+      const simulcasts = db.prepare('SELECT id FROM simulcasts WHERE channel_id = ?').all(id) as any[];
+      const compliances = db.prepare('SELECT id FROM compliance WHERE channel_id = ?').all(id) as any[];
+
+      shifts.forEach(s => FFmpegService.stop('shift', s.id));
+      remis.forEach(r => FFmpegService.stop('remi', r.id));
+      simulcasts.forEach(s => FFmpegService.stop('simulcast', s.id));
+      compliances.forEach(c => FFmpegService.stop('compliance', c.id));
+
+      // DB cascade (ON DELETE CASCADE handles child tables)
+      db.prepare('DELETE FROM channels WHERE id = ? AND tenant_id = ?').run(id, tenantId);
+
+      return reply.send({ success: true, message: 'Canal e todos os daemons associados encerrados.' });
+    } catch (e: any) {
+      return reply.code(400).send({ success: false, error: e.issues || e.message });
+    }
+  });
+
   // ========== SHIFTS (A) ==========
   server.get('/api/v1/shifts', async (request, reply) => {
     const shifts = getDb().prepare('SELECT * FROM shifts WHERE tenant_id = ?').all((request as any).tenant_id);
-    return reply.send({ success: true, shifts });
+    return reply.send({ success: true, shifts, server_host: serverHost() });
   });
 
   server.post('/api/v1/shifts', async (request, reply) => {
@@ -75,7 +113,7 @@ export async function setupRoutes(server: FastifyInstance) {
   // ========== REMI (B) ==========
   server.get('/api/v1/remi', async (request, reply) => {
     const remi = getDb().prepare('SELECT * FROM remi WHERE tenant_id = ?').all((request as any).tenant_id);
-    return reply.send({ success: true, remi });
+    return reply.send({ success: true, remi, server_host: serverHost() });
   });
 
   server.post('/api/v1/remi', async (request, reply) => {

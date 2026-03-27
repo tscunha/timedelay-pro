@@ -9,16 +9,19 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function TimeShiftTab({ channels }: { channels: Channel[] }) {
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [serverHost, setServerHost] = useState('...');
   const [selectedChannel, setSelectedChannel] = useState('');
   const [delay, setDelay] = useState(3600);
   const [outPort, setOutPort] = useState(9011);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const loadShifts = useCallback(async () => {
     try {
       const res = await shiftsApi.list();
       setShifts(res.shifts);
+      setServerHost(res.server_host);
     } catch { /* silently ignore poll errors */ }
   }, []);
 
@@ -50,6 +53,12 @@ export default function TimeShiftTab({ channels }: { channels: Channel[] }) {
     } catch (e: any) {
       setError(e.message);
     }
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(text);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   const channelName = (id: string) => channels.find(c => c.id === id)?.name ?? id;
@@ -106,7 +115,15 @@ export default function TimeShiftTab({ channels }: { channels: Channel[] }) {
               <div style={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
                 <div className="wf-link-box">
                   ACESSO AO SINAL:<br />
-                  <span style={{ fontSize: '1.2em' }}>srt://[servidor]:{s.out_port}</span>
+                  <span style={{ fontSize: '1.2em', fontFamily: 'monospace' }}>srt://{serverHost}:{s.out_port}</span>
+                  <br />
+                  <button
+                    className="wf-btn"
+                    style={{ marginTop: '8px', width: 'auto', padding: '4px 10px', fontSize: '11px' }}
+                    onClick={() => handleCopy(`srt://${serverHost}:${s.out_port}`)}
+                  >
+                    {copied === `srt://${serverHost}:${s.out_port}` ? '[ ✓ COPIADO ]' : '[ COPIAR LINK ]'}
+                  </button>
                 </div>
               </div>
 

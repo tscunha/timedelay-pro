@@ -4,8 +4,8 @@ services:
   timeshift-api:
     build: .
     container_name: timeshift_orchestrator
-    # network_mode: "host" ensures this Docker container shares the exact same IP layer as Nimble Streaming!
-    # So 127.0.0.1 inside Fastify routing exactly hits Nimble Streamer's port 8081.
+    # network_mode: "host" garante que 127.0.0.1 dentro do container
+    # aponta para o Nimble Streamer rodando no host.
     network_mode: "host"
     restart: unless-stopped
     environment:
@@ -13,6 +13,11 @@ services:
       - PORT=3000
       - NIMBLE_HOST=127.0.0.1
       - NIMBLE_PORT=8081
+      # IP ou hostname público da VPS — aparece nos links SRT da UI
+      - SERVER_HOST=SEU_IP_AQUI
+      # Formato: tenant_id:api_key (vírgula para múltiplos tenants)
+      # Gere uma chave com: openssl rand -hex 32
+      - TENANT_API_KEYS=tenant123:COLOQUE_SUA_CHAVE_AQUI
     volumes:
       - timeshift_db:/app/data
 

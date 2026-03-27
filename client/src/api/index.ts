@@ -54,6 +54,7 @@ export const channelsApi = {
   list: () => req<{ success: boolean; channels: Channel[] }>('GET', '/channels'),
   create: (payload: { name: string; streamid: string }) =>
     req<{ success: boolean; id: string }>('POST', '/channels', payload),
+  destroy: (id: string) => req<{ success: boolean }>('DELETE', `/channels/${id}`),
 };
 
 // ──────────────────────────────────────────
@@ -71,7 +72,7 @@ export interface Shift {
 }
 
 export const shiftsApi = {
-  list: () => req<{ success: boolean; shifts: Shift[] }>('GET', '/shifts'),
+  list: () => req<{ success: boolean; shifts: Shift[]; server_host: string }>('GET', '/shifts'),
   create: (payload: { channel_id: string; delay_seconds: number; out_port: number }) =>
     req<{ success: boolean; id: string }>('POST', '/shifts', payload),
   destroy: (id: string) => req<{ success: boolean }>('DELETE', `/shifts/${id}`),
@@ -91,7 +92,7 @@ export interface Remi {
 }
 
 export const remiApi = {
-  list: () => req<{ success: boolean; remi: Remi[] }>('GET', '/remi'),
+  list: () => req<{ success: boolean; remi: Remi[]; server_host: string }>('GET', '/remi'),
   create: (payload: { channel_id: string; out_port: number }) =>
     req<{ success: boolean; id: string }>('POST', '/remi', payload),
   destroy: (id: string) => req<{ success: boolean }>('DELETE', `/remi/${id}`),
