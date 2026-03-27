@@ -48,11 +48,23 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (request.params.name === 'restart_shift') {
     const { shift_id } = request.params.arguments as any;
-    FFmpegService.stop(shift_id); // Changed to use bare shift_id since FFmpegService internally maps it
     
-    // In production we would fetch the shift details from SQLite and re-trigger start.
-    // Simplifying self-healing command for MVP:
-    return { content: [{ type: 'text', text: `Shift ${shift_id} derubado (SIGKILL enviado). Ele será recriado pela próxima varredura de heartbeat.` }] };
+    // BUG-1 FIX: correct stop() signature — was missing the jobType argument
+    FFmpegService.stop('shift', shift_id);
+    
+    // Re-read shift from DB and re-spawn the daemon
+    const db = getDb();
+    const shift = db.prepare('SELECT * FROM shifts WHERE id = ?').get(shift_id) as any;
+    
+    if (!shift) {
+      return { content: [{ type: 'text', text: `ERRO: Shift ${shift_id} não encontrado no banco de dados.` }] };
+    }
+    
+    // Re-set status to running before re-spawn (Zombie Spawner will keep it alive)
+    db.prepare('UPDATE shifts SET status = ? WHERE id = ?').run('running', shift_id);
+    FFmpegService.startTimeShift(shift_id, shift.channel_id, shift.delay_seconds, shift.out_port);
+    
+    return { content: [{ type: 'text', text: `Shift ${shift_id} reiniciado com sucesso. Canal: ${shift.channel_id} | Delay: ${shift.delay_seconds}s | Porta: ${shift.out_port}` }] };
   }
 
   throw new Error('Tool não encontrada');

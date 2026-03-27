@@ -1,79 +1,125 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { shiftsApi, type Shift, type Channel } from '../api';
 
-export default function TimeShiftTab({ cameras }: { cameras: any[] }) {
-  const [shifts, setShifts] = useState<any[]>([
-    { id: '1', name: '[CAM 1] ESTÚDIO A', delay: 3600, port: 9011, online: true }
-  ]);
-  const [selectedCam, setSelectedCam] = useState('');
+const STATUS_LABEL: Record<string, string> = {
+  running: 'NO AR',
+  stopped: 'PARADO',
+  crashed: 'CRASHED',
+};
+
+export default function TimeShiftTab({ channels }: { channels: Channel[] }) {
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState('');
   const [delay, setDelay] = useState(3600);
+  const [outPort, setOutPort] = useState(9011);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleEngage = () => {
-    if(!selectedCam) return alert('Selecione um Sinal');
-    setShifts([...shifts, { 
-      id: Date.now().toString(), 
-      name: cameras.find(c => c.id === selectedCam)?.name, 
-      delay, 
-      port: 9015 + shifts.length, 
-      online: true 
-    }]);
+  const loadShifts = useCallback(async () => {
+    try {
+      const res = await shiftsApi.list();
+      setShifts(res.shifts);
+    } catch { /* silently ignore poll errors */ }
+  }, []);
+
+  useEffect(() => {
+    loadShifts();
+    const timer = setInterval(loadShifts, 5_000);
+    return () => clearInterval(timer);
+  }, [loadShifts]);
+
+  const handleEngage = async () => {
+    if (!selectedChannel) { setError('Selecione um sinal de origem.'); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      await shiftsApi.create({ channel_id: selectedChannel, delay_seconds: delay, out_port: outPort });
+      await loadShifts();
+      setOutPort(p => p + 1);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleKill = async (id: string) => {
+    try {
+      await shiftsApi.destroy(id);
+      setShifts(s => s.filter(x => x.id !== id));
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  const channelName = (id: string) => channels.find(c => c.id === id)?.name ?? id;
 
   return (
     <div className="wf-grid-3-1">
-      {/* Coluna 1: Painel de Comando */}
       <div className="wf-box">
-         <h2 className="wf-title">CRIAR NOVO ATRASO</h2>
-         
-         <label className="wf-label">[1] SELECIONAR SINAL DE ORIGEM</label>
-         <select className="wf-input" value={selectedCam} onChange={e => setSelectedCam(e.target.value)}>
-           <option value="">-- ESCOLHER ORIGEM --</option>
-           {cameras.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-         </select>
-         
-         <label className="wf-label" style={{marginTop:'20px'}}>[2] ESPECIFICAR ATRASO (EM SEGUNDOS)</label>
-         <input type="number" className="wf-input huge" value={delay} onChange={e => setDelay(Number(e.target.value))} />
-         <p style={{textAlign: 'center', fontSize: '12px', marginTop: '-10px'}}>Ex: 1 hora = 3600</p>
-         
-         <button className="wf-btn wf-btn-dark" onClick={handleEngage} style={{marginTop:'20px'}}>
-           [ ENVIAR COMANDO DE ENGATE (ENGAGE) ]
-         </button>
-      </div>
-      
-      {/* Coluna 2: Monitoramento */}
-      <div className="wf-box" style={{backgroundColor: '#fafafa'}}>
-         <h2 className="wf-title">MOTORES DE ATRASO EM EXECUÇÃO</h2>
-         
-         {shifts.length === 0 && (
-           <div className="wf-box-dashed" style={{textAlign: 'center', margin: '40px'}}>
-             <p>[ Nenhuma operação local ativa - Mesa Limpa ]</p>
-           </div>
-         )}
+        <h2 className="wf-title">CRIAR NOVO ATRASO</h2>
 
-         <div className="wf-flex-col">
-            {shifts.map(s => (
-              <div key={s.id} className="wf-list-item">
-                 <div style={{flex: 1}}>
-                   <strong>{s.name}</strong><br/>
-                   <span style={{fontSize: '14px'}}>Engrenagem configurada para {s.delay} Segundos</span><br/>
-                   <span className="wf-badge" style={{marginTop: '5px', display: 'inline-block'}}>[ STATUS: NO AR ]</span>
-                 </div>
-                 
-                 <div style={{flex: 2, display: 'flex', justifyContent: 'center'}}>
-                    <div className="wf-link-box">
-                       ACESSO AO SINAL: <br/> 
-                       <span style={{fontSize:'1.2em'}}>srt://[ip-servidor]:{s.port}</span>
-                    </div>
-                 </div>
-                 
-                 <div style={{flex: 1, textAlign: 'right'}}>
-                    <button className="wf-btn" style={{width: 'auto', padding: '10px 20px'}} onClick={() => setShifts(shifts.filter(x => x.id !== s.id))}>
-                      [ MATAR (KILL) ]
-                    </button>
-                 </div>
+        <label className="wf-label">[1] SELECIONAR SINAL DE ORIGEM</label>
+        <select className="wf-input" value={selectedChannel} onChange={e => setSelectedChannel(e.target.value)}>
+          <option value="">-- ESCOLHER ORIGEM --</option>
+          {channels.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+
+        <label className="wf-label" style={{ marginTop: '20px' }}>[2] ATRASO (SEGUNDOS)</label>
+        <input type="number" className="wf-input huge" value={delay} onChange={e => setDelay(Number(e.target.value))} />
+        <p style={{ textAlign: 'center', fontSize: '12px', marginTop: '-10px' }}>Ex: 1 hora = 3600</p>
+
+        <label className="wf-label" style={{ marginTop: '15px' }}>[3] PORTA SRT DE SAÍDA</label>
+        <input type="number" className="wf-input" value={outPort} onChange={e => setOutPort(Number(e.target.value))} />
+
+        {error && <p style={{ color: 'red', fontSize: '13px', marginTop: '10px' }}>⚠ {error}</p>}
+
+        <button className="wf-btn wf-btn-dark" onClick={handleEngage} disabled={loading} style={{ marginTop: '20px' }}>
+          {loading ? '[ ENGAJANDO... ]' : '[ ENGAGE ]'}
+        </button>
+      </div>
+
+      <div className="wf-box" style={{ backgroundColor: '#fafafa' }}>
+        <h2 className="wf-title">MOTORES DE ATRASO EM EXECUÇÃO</h2>
+
+        {shifts.length === 0 && (
+          <div className="wf-box-dashed" style={{ textAlign: 'center', margin: '40px' }}>
+            <p>[ Mesa Limpa — Nenhum shift ativo ]</p>
+          </div>
+        )}
+
+        <div className="wf-flex-col">
+          {shifts.map(s => (
+            <div key={s.id} className="wf-list-item">
+              <div style={{ flex: 1 }}>
+                <strong>{channelName(s.channel_id)}</strong><br />
+                <span style={{ fontSize: '14px' }}>Atraso: {s.delay_seconds}s</span><br />
+                <span
+                  className="wf-badge"
+                  style={{ marginTop: '5px', display: 'inline-block', background: s.status === 'running' ? '#000' : s.status === 'crashed' ? '#c00' : '#666' }}
+                >
+                  [ {STATUS_LABEL[s.status] ?? s.status} ]
+                </span>
+                {s.pid && <span style={{ fontSize: '11px', marginLeft: '8px' }}>PID: {s.pid}</span>}
               </div>
-            ))}
-         </div>
+
+              <div style={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
+                <div className="wf-link-box">
+                  ACESSO AO SINAL:<br />
+                  <span style={{ fontSize: '1.2em' }}>srt://[servidor]:{s.out_port}</span>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                <button className="wf-btn" style={{ width: 'auto', padding: '10px 20px' }} onClick={() => handleKill(s.id)}>
+                  [ KILL ]
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
-  )
+  );
 }
+

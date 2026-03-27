@@ -67,7 +67,10 @@ export async function setupRoutes(server: FastifyInstance) {
       getDb().prepare('INSERT INTO shifts (id, tenant_id, channel_id, delay_seconds, out_port) VALUES (?, ?, ?, ?, ?)').run(id, (request as any).tenant_id, channel_id, delay_seconds, out_port);
       FFmpegService.startTimeShift(id, channel_id, delay_seconds, out_port);
       return reply.code(201).send({ success: true, id });
-    } catch (e: any) { return reply.code(400).send({ success: false, error: e.issues || e.message }); }
+    } catch (e: any) {
+      if (e?.code === 'SQLITE_CONSTRAINT_UNIQUE') return reply.code(409).send({ success: false, error: `Porta ${(request.body as any)?.out_port} já está ocupada por outro shift. Escolha uma porta diferente.` });
+      return reply.code(400).send({ success: false, error: e.issues || e.message });
+    }
   });
 
   // ========== REMI (B) ==========
@@ -83,10 +86,18 @@ export async function setupRoutes(server: FastifyInstance) {
       getDb().prepare('INSERT INTO remi (id, tenant_id, channel_id, out_port) VALUES (?, ?, ?, ?)').run(id, (request as any).tenant_id, channel_id, out_port);
       FFmpegService.startRemi(id, channel_id, out_port);
       return reply.code(201).send({ success: true, id });
-    } catch (e: any) { return reply.code(400).send({ success: false, error: e.issues || e.message }); }
+    } catch (e: any) {
+      if (e?.code === 'SQLITE_CONSTRAINT_UNIQUE') return reply.code(409).send({ success: false, error: `Porta ${(request.body as any)?.out_port} já está ocupada por outra rota REMI.` });
+      return reply.code(400).send({ success: false, error: e.issues || e.message });
+    }
   });
 
   // ========== SIMULCAST (C) ==========
+  server.get('/api/v1/simulcasts', async (request, reply) => {
+    const simulcasts = getDb().prepare('SELECT * FROM simulcasts WHERE tenant_id = ?').all((request as any).tenant_id);
+    return reply.send({ success: true, simulcasts });
+  });
+
   server.post('/api/v1/simulcasts', async (request, reply) => {
     try {
         const { channel_id, destination_name, rtmp_url } = SpawnSimulcastSchema.parse(request.body);
@@ -94,10 +105,18 @@ export async function setupRoutes(server: FastifyInstance) {
         getDb().prepare('INSERT INTO simulcasts (id, tenant_id, channel_id, destination_name, rtmp_url) VALUES (?, ?, ?, ?, ?)').run(id, (request as any).tenant_id, channel_id, destination_name, rtmp_url);
         FFmpegService.startSimulcast(id, channel_id, rtmp_url);
         return reply.code(201).send({ success: true, id });
-    } catch (e: any) { return reply.code(400).send({ success: false, error: e.issues || e.message }); }
+    } catch (e: any) {
+      if (e?.code === 'SQLITE_CONSTRAINT_UNIQUE') return reply.code(409).send({ success: false, error: 'Este canal já possui um simulcast ativo para este destino.' });
+      return reply.code(400).send({ success: false, error: e.issues || e.message });
+    }
   });
 
   // ========== COMPLIANCE (D) ==========
+  server.get('/api/v1/compliance', async (request, reply) => {
+    const compliance = getDb().prepare('SELECT * FROM compliance WHERE tenant_id = ?').all((request as any).tenant_id);
+    return reply.send({ success: true, compliance });
+  });
+
   server.post('/api/v1/compliance', async (request, reply) => {
     try {
         const { channel_id, output_path } = SpawnComplianceSchema.parse(request.body);
@@ -105,7 +124,10 @@ export async function setupRoutes(server: FastifyInstance) {
         getDb().prepare('INSERT INTO compliance (id, tenant_id, channel_id, output_path) VALUES (?, ?, ?, ?)').run(id, (request as any).tenant_id, channel_id, output_path);
         FFmpegService.startCompliance(id, channel_id, output_path);
         return reply.code(201).send({ success: true, id });
-    } catch (e: any) { return reply.code(400).send({ success: false, error: e.issues || e.message }); }
+    } catch (e: any) {
+      if (e?.code === 'SQLITE_CONSTRAINT_UNIQUE') return reply.code(409).send({ success: false, error: 'Este canal já possui uma sessão de compliance ativa.' });
+      return reply.code(400).send({ success: false, error: e.issues || e.message });
+    }
   });
 
   // ========== GENERIC KILLER ==========
