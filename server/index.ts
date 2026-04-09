@@ -49,20 +49,26 @@ async function bootstrap() {
   await setupRoutes(server);
   
   // Servir frontend React em Produção
-  await server.register(fastifyStatic, {
-    root: path.join(__dirname, '../../client/dist'),
-    prefix: '/',
-    // Fallback para SPA: qualquer rota não-API devolve index.html
-    decorateReply: false,
-  });
+  // Em modo dev (ts-node), o Vite serve o frontend em :5173 — dist não existe
+  const clientDist = path.join(__dirname, '../../client/dist');
+  const { existsSync } = await import('fs');
+  if (existsSync(clientDist)) {
+    await server.register(fastifyStatic, {
+      root: clientDist,
+      prefix: '/',
+      decorateReply: false,
+    });
+    server.setNotFoundHandler(async (request, reply) => {
+      if (!request.url.startsWith('/api/')) {
+        return reply.sendFile('index.html', clientDist);
+      }
+      return reply.code(404).send({ success: false, error: 'Route not found' });
+    });
+    server.log.info('Frontend estatico servido de ' + clientDist);
+  } else {
+    server.log.info('Modo DEV: frontend servido pelo Vite em http://localhost:5173');
+  }
 
-  // Fallback SPA: retorna index.html para qualquer rota não-API
-  server.setNotFoundHandler(async (request, reply) => {
-    if (!request.url.startsWith('/api/')) {
-      return reply.sendFile('index.html', path.join(__dirname, '../../client/dist'));
-    }
-    return reply.code(404).send({ success: false, error: 'Route not found' });
-  });
 
   server.get('/api/v1/health', async () => {
     return { status: 'healthy', timestamp: new Date().toISOString() };
